@@ -206,7 +206,7 @@ var series_site4 = ui.Chart.image.seriesByRegion(
 
 print(series_site4)
 
-// Site 5
+// Site 5 (Git Commit Test)
 
 var geom5 = ee.Geometry.Point(-121.10898189018967,39.24712029464026).buffer(30) ;
 
