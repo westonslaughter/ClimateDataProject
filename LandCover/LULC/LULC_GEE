@@ -138,7 +138,7 @@ var shed9 = catchments.filter(ee.Filter.eq('gridcode', 9));
 var shed10 = catchments.filter(ee.Filter.eq('gridcode', 10));
 var shed14 = catchments.filter(ee.Filter.eq('gridcode', 14));
 
-//step 3. Get cumulative watersheds for each site
+//Get cumulative watersheds for each site
 
 var totalsheds2 = shed1.merge(shed2);
 var totalsheds12 = shed12.merge(shed13);
