@@ -7,4 +7,3 @@ LULC Variables
   * Land Cover from Supervised Classification
   * Fire History
   * Population Density
-g
