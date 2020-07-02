@@ -11,3 +11,5 @@ Iterate function calculating land cover % by area within catchment over all site
 Reach out to SYRCL + WCCA Regarding getting datasets | WS
 Schedule meeting w/ JL to discuss future variables | WS
 Later: review and explore future LULC variables | DP + WS
+
+Delete when complete!
