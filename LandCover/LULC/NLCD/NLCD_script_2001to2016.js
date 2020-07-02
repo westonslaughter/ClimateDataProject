@@ -424,4 +424,4 @@ var totalsheds9 = totalsheds16.merge(totalsheds8);
 var totalsheds10 = totalsheds9.merge(shed10);
 var DCsheds = totalsheds10.merge(shed14);
 
-//next step: analyze LULC within each catchment. Reduce region. 
+//next step: analyze LULC within each catchment. Reduce region.
