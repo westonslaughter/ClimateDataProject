@@ -7,7 +7,7 @@ var catchmentsSelected = hydro.getCatchments({outlet: geometry, level: 6})
 
 Map.addLayer(catchments.style({color: 'ffffff55', width: 1, fillColor: '00000088'}), {}, 'catchments (all)')
 Map.addLayer(catchmentsSelected.style({color: 'ffff0055', width: 1, fillColor: 'ffff0088'}), {}, 'catchments (selected)')
-
+// wes comment to test GotHub
 
 // add rivers (all)
 var rivers = hydro.getRivers()
