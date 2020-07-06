@@ -1,4 +1,6 @@
 #### FINAL RUN ####
+## Author: Wes Slaughter
+## Org: Sierra Streams Institute
 
 library(plyr)
 library(tidyverse)
