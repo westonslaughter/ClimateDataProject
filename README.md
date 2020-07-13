@@ -9,7 +9,6 @@ Getting .shp and other files from local to cloud storage, and updating code acco
 QA/QC Water Quality Data (remove outliers, etc.) | WS
 Iterate function calculating land cover % by area within catchment over all sites | DP + WS
 Reach out to SYRCL + WCCA Regarding getting datasets | WS
-Schedule meeting w/ JL to discuss future variables | WS
 Later: review and explore future LULC variables | DP + WS
 
 Delete when complete!
