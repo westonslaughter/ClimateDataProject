@@ -191,7 +191,7 @@ var DC_2016_image = DC_2016.reduce(ee.Reducer.median());
   print('catchment areas', catchments_area);
 
 //FOREST FUNCTION (2001)
-var catchments_area = catchments.map(function(feature){
+var catchments_area = catchments_area.map(function(feature){
     var num = ee.Number.parse(feature.get('Shape_Area')).divide(1000*1000);
     return feature.set('Shape_Area', num);
   });
@@ -216,7 +216,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw forest area 2001', number);
+return x.set('raw forest area 2001 km2', number);
 });
 print('catchment forest results', forest_function);
 
@@ -243,7 +243,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw water area 2001', number);
+return x.set('raw water area 2001 km2', number);
 });
 
 
@@ -270,7 +270,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw urban area 2001', number);
+return x.set('raw urban area 2001 km2', number);
 });
 
 //agriculture (81, 82)
@@ -294,7 +294,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw ag area 2001', number);
+return x.set('raw ag area 2001 km2', number);
 });
  //0% ag//
 
@@ -319,7 +319,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw grassland area 2001', number);
+return x.set('raw grassland area 2001 km2', number);
 });
 
 //scrub (51, 52)
@@ -343,7 +343,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw scrub area 2001', number);
+return x.set('raw scrub area 2001 km2', number);
 });
 
 print('2001 results', scrub_function);
@@ -370,7 +370,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw forest area 2016', number);
+return x.set('raw forest area 2016 km2', number);
 });
 
 ///////////////////////REPEAT THIS PROCESS FOR ALL OTHER LC's///////////////////////
@@ -396,7 +396,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw water area 2016', number);
+return x.set('raw water area 2016 km2', number);
 });
 
 
@@ -423,7 +423,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw urban area 2016', number);
+return x.set('raw urban area 2016 km2', number);
 });
 
 //agriculture (81, 82)
@@ -447,7 +447,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw ag area 2016', number);
+return x.set('raw ag area 2016 km2', number);
 });
  //0% ag//
 
@@ -472,7 +472,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw grassland area 2016', number);
+return x.set('raw grassland area 2016 km2', number);
 });
 
 //scrub (51, 52)
@@ -496,7 +496,7 @@ var number = ee.Number(cast_image.select('landcover_median')
  .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
   .get('landcover_median'));
 
-return x.set('raw scrub area 2016', number);
+return x.set('raw scrub area 2016 km2', number);
 });
 
 ////////////Export final feature collection to drive/////////////////
