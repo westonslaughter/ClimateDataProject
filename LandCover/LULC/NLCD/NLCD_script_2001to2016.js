@@ -121,7 +121,7 @@ Map.addLayer(DC_2016, landcoverVis, 'DC_2016');
 var DC_outline = DC_watershed.style
 ({color: 'ff1a1a', 'fillColor': 'FFFFFF00', 'lineType': 'solid'});
 
-Map.addLayer(DC_outline);
+//Map.addLayer(DC_outline);
 
 ///////PART 2. FIND % EACH LC WITHIN THE WATERSHED////////
 
@@ -131,297 +131,376 @@ Map.addLayer(DC_outline);
     var num = ee.Number.parse(feature.get('AreaSqKm'));
     return feature.set('AreaSqKm', num);
   });
-  print('DC_Area', DC_watershed_area.aggregate_stats('AreaSqKm'));
 
+  print('DC_area', DC_watershed_area.aggregate_stats('AreaSqKm'));
   var area = 231.7;
 
-//isolate just one LC: forest=41,42,43 for NLCD. Need forest=1, all else=0
-  //Reduce DC_2001 to an image
+//Reduce DC_2001 and DC_2016 to an image
 var DC_2001_image = DC_2001.reduce(ee.Reducer.median());
+print('DC 2001 image', DC_2001_image);
+
+var DC_2016_image = DC_2016.reduce(ee.Reducer.median());
+
+//isolate just one LC: forest=41,42,43 for NLCD. Need forest=1, all else=0
+
 
   var forest_mask_2001 = DC_2001_image.eq(41).add(DC_2001_image.eq(42))
   .add(DC_2001_image.eq(43))
   .clipToCollection(DC_watershed);
-     Map.addLayer(forest_mask_2001, {color:'000FF00'}, 'forest_mask');
+     print(forest_mask_2001, {color:'000FF00'}, 'forest_mask');
 
   //calculate the area of each forest pixel
   var forest_area2001 = forest_mask_2001.multiply(ee.Image.pixelArea().divide(1000*1000));
+     print('forest_area 2001', forest_area2001);
 
-  //sum the value of the forest pixels in DC watershed
+  //cast result of reduce region as an image
      var forest_sum2001 = forest_area2001.reduceRegion({
        reducer: ee.Reducer.sum(),
        geometry: DC_watershed,
        scale: 30,
-       maxPixels: 1e13
-     });
+       maxPixels: 1e13});
 
-     print('forest area 2001', forest_sum2001, 'km2');
+     var forest_cast = forest_sum2001.toImage()
+      .toFloat()
+      .clipToCollection(DC_watershed);
 
-  //Forest area = 117.9km2. Now we can calculate the percentage
-  //of area in DC watershed that is forest:
+  print('forest cast', forest_cast);
+  Map.addLayer(forest_cast, {color:'000000'}, 'forest cast');
 
-  var percent_forest2001 = ee.Number(forest_sum2001).divide(area)*100;
+  ////now make it a number
+  var forest_num = ee.Number(forest_cast.select('landcover_median')
+  .reduceRegion(ee.Reducer.first(), DC_watershed, 10)
+  .get('landcover_median'));
 
-  print('percent forest 2001', percent_forest2001);
+  print("forest number", forest_num);
 
-//REPEAT THIS PROCESS FOR ALL OTHER LC's
+  ////now get the percentage
+  var forest_2001percent = forest_num.divide(area).multiply(100);
+  print('forest 2001 percent', forest_2001percent);
 
-//water (original: 11)
-var water_mask2001 = DC_2001_image.eq(11)
-     .clipToCollection(DC_watershed);
-     Map.addLayer(water_mask2001, {color:'000000'}, 'water_mask');
+////////////////////// Make this a function ///////////////////////////////
+//mapped over x geometry (catchments, a Feature Collection)//
+//(ultimately, will want to run this over totalsheds layer)
 
-var water_area2001 = water_mask2001.multiply(ee.Image.pixelArea().divide(1000*1000));
+  //In catchments, convert Shape_area from a float to a Number.
+  //Also convert area from m2 to km2
+  var catchments_area = catchments.map(function(feature){
+    var num = ee.Number.parse(feature.get('Shape_Area')).divide(1000*1000);
+    return feature.set('Shape_Area', num);
+  });
+  print('catchment areas', catchments_area);
 
-var water_sum2001 = water_area2001.reduceRegion({
+//FOREST FUNCTION (2001)
+var catchments_area = catchments.map(function(feature){
+    var num = ee.Number.parse(feature.get('Shape_Area')).divide(1000*1000);
+    return feature.set('Shape_Area', num);
+  });
+
+var forest_function = catchments.map (function(x) {
+
+var forest_mask = DC_2001_image.eq(41).add(DC_2001_image.eq(42))
+  .add(DC_2001_image.eq(43))
+  .clipToCollection(ee.FeatureCollection(x));
+
+var area = forest_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
+       scale: 30,
+       maxPixels: 1e13});
+
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
+
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw forest area 2001', number);
+});
+print('catchment forest results', forest_function);
+
+///////////////////////REPEAT THIS PROCESS FOR ALL OTHER LC's///////////////////////
+
+//WATER FUNCTION (2001)
+var water_function = forest_function.map( function(x) {
+
+var water_mask = DC_2001_image.eq(11)
+     .clipToCollection(ee.FeatureCollection(x));
+
+var area = water_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
+       reducer: ee.Reducer.sum(),
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
-   print('water area 2001', water_sum2001, 'km2');
 
-   var percent_water2001 = 3.76/(area)*(100);
-  print('percent water 2001', percent_water2001);
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
+
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw water area 2001', number);
+});
+
 
 //urban (21-24)
-var urban_mask2001 = DC_2001_image.eq(21).add(DC_2001_image.eq(22))
+var urban_function = water_function.map( function(x) {
+
+var urban_mask = DC_2001_image.eq(21).add(DC_2001_image.eq(22))
 .add(DC_2001_image.eq(23))
 .add(DC_2001_image.eq(24))
-     .clipToCollection(DC_watershed);
-     Map.addLayer(urban_mask2001, {color:'F00000'}, 'urban_mask');
+     .clipToCollection(ee.FeatureCollection(x));
 
-var urban_area2001 = urban_mask2001.multiply(ee.Image.pixelArea().divide(1000*1000));
+var area = urban_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
 
-var urban_sum2001 = urban_area2001.reduceRegion({
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
-   print('urban area 2001', urban_sum2001, 'km2');
 
-  var percent_urban2001 = 24.64/(area)*100;
-  print('percent urban 2001', percent_urban2001);
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
+
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw urban area 2001', number);
+});
 
 //agriculture (81, 82)
-var ag_mask2001 = DC_2001_image.eq(81).add(DC_2001_image.eq(82))
-     .clipToCollection(DC_watershed);
-     Map.addLayer(ag_mask2001, {color:'000F00'}, 'ag_mask2001');
+var ag_function = urban_function.map( function(x) {
 
-var ag_area2001 = ag_mask2001.multiply(ee.Image.pixelArea().divide(1000*1000));
+var ag_mask = DC_2001_image.eq(81).add(DC_2001_image.eq(82))
+     .clipToCollection(ee.FeatureCollection(x));
 
-var ag_sum2001 = ag_area2001.reduceRegion({
+var area = ag_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
 
-  print('ag area 2000', ag_sum2001, 'km2');
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
 
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw ag area 2001', number);
+});
  //0% ag//
 
 //grassland (71)
-var grass_mask2001 = DC_2001_image.eq(71)
-     .clipToCollection(DC_watershed);
-     Map.addLayer(grass_mask2001, {color:'00000F'}, 'grass_mask2001');
+var grassland_function = ag_function.map( function(x) {
 
-var grass_area2001 = grass_mask2001.multiply(ee.Image.pixelArea().divide(1000*1000));
+var grass_mask = DC_2001_image.eq(71)
+     .clipToCollection(ee.FeatureCollection(x));
 
-var grass_sum2001 = grass_area2001.reduceRegion({
+var area = grass_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
 
-  print('grassland area 2001', grass_sum2001, 'km2');
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
 
-  var percent_grass2001 = 14.82/(area)*100;
-  print('percent grassland 2001', percent_grass2001);
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw grassland area 2001', number);
+});
 
 //scrub (51, 52)
-var scrub_mask2001 = DC_2001_image.eq(51).add(DC_2001_image.eq(52))
-     .clipToCollection(DC_watershed);
-     Map.addLayer(scrub_mask2001, {color:'00000F'}, 'scrub_mask2001');
+var scrub_function = grassland_function.map( function(x) {
 
-var scrub_area2001 = scrub_mask2001.multiply(ee.Image.pixelArea().divide(1000*1000));
+var scrub_mask = DC_2001_image.eq(51).add(DC_2001_image.eq(52))
+     .clipToCollection(ee.FeatureCollection(x));
 
-var scrub_sum2001 = scrub_area2001.reduceRegion({
+var area = scrub_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
 
-  print('scrub area 2001', scrub_sum2001, 'km2');
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
 
-  var percent_scrub2001 = 33.16/(area)*100;
-  print('percent scrub 2001', percent_scrub2001);
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
 
+return x.set('raw scrub area 2001', number);
+});
 
-///////////REPEAT THESE MASKS FOR 2016///////////////////
+print('2001 results', scrub_function);
 
-//forest
-var DC_2016_image = DC_2016.reduce(ee.Reducer.median());
+/////////////////REPEAT FOR 2016//////////////////////////
 
-  var forest_mask_2016 = DC_2016_image.eq(41).add(DC_2016_image.eq(42))
+var forest16_function = scrub_function.map (function(x) {
+
+var forest_mask = DC_2016_image.eq(41).add(DC_2016_image.eq(42))
   .add(DC_2016_image.eq(43))
-  .clipToCollection(DC_watershed);
+  .clipToCollection(ee.FeatureCollection(x));
 
-  var forest_area2016 = forest_mask_2016.multiply(ee.Image.pixelArea().divide(1000*1000));
+var area = forest_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
 
-  var forest_sum2016 = forest_area2016.reduceRegion({
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
+       scale: 30,
+       maxPixels: 1e13});
+
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
+
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw forest area 2016', number);
+});
+
+///////////////////////REPEAT THIS PROCESS FOR ALL OTHER LC's///////////////////////
+
+//WATER FUNCTION (2001)
+var water16_function = forest16_function.map( function(x) {
+
+var water_mask = DC_2016_image.eq(11)
+     .clipToCollection(ee.FeatureCollection(x));
+
+var area = water_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
+       reducer: ee.Reducer.sum(),
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
 
-     print('forest area 2016', forest_sum2016, 'km2');
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
 
-  var percent_forest2016 = 168.58/(area)*100;
-  print('percent forest 2016', percent_forest2016);
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
 
+return x.set('raw water area 2016', number);
+});
 
-  //water//
-var water_mask2016 = DC_2016_image.eq(11)
-     .clipToCollection(DC_watershed);
-
-var water_area2016 = water_mask2016.multiply(ee.Image.pixelArea().divide(1000*1000));
-
-var water_sum2016 = water_area2016.reduceRegion({
-       reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
-       scale: 30,
-       maxPixels: 1e13
-     });
-   print('water area 2016', water_sum2016, 'km2');
-
-   var percent_water2016 = 4.07/(area)*(100);
-  print('percent water 2016', percent_water2016);
 
 //urban (21-24)
-var urban_mask2016 = DC_2016_image.eq(21).add(DC_2016_image.eq(22))
+var urban16_function = water16_function.map( function(x) {
+
+var urban_mask = DC_2016_image.eq(21).add(DC_2016_image.eq(22))
 .add(DC_2016_image.eq(23))
 .add(DC_2016_image.eq(24))
-     .clipToCollection(DC_watershed);
+     .clipToCollection(ee.FeatureCollection(x));
 
-var urban_area2016 = urban_mask2016.multiply(ee.Image.pixelArea().divide(1000*1000));
+var area = urban_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
 
-var urban_sum2016 = urban_area2016.reduceRegion({
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
-   print('urban area 2016', urban_sum2016, 'km2');
 
-  var percent_urban2016 = 25.18/(area)*100;
-  print('percent urban 2016', percent_urban2016);
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
+
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw urban area 2016', number);
+});
 
 //agriculture (81, 82)
-var ag_mask2016 = DC_2016_image.eq(81).add(DC_2016_image.eq(82))
-     .clipToCollection(DC_watershed);
-var ag_area2016 = ag_mask2016.multiply(ee.Image.pixelArea().divide(1000*1000));
+var ag16_function = urban16_function.map( function(x) {
 
-var ag_sum2016 = ag_area2016.reduceRegion({
+var ag_mask = DC_2016_image.eq(81).add(DC_2016_image.eq(82))
+     .clipToCollection(ee.FeatureCollection(x));
+
+var area = ag_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
 
-  print('ag area 2016', ag_sum2016, 'km2');
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
 
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw ag area 2016', number);
+});
  //0% ag//
 
 //grassland (71)
-var grass_mask2016 = DC_2016_image.eq(71)
-     .clipToCollection(DC_watershed);
+var grassland16_function = ag16_function.map( function(x) {
 
-var grass_area2016 = grass_mask2016.multiply(ee.Image.pixelArea().divide(1000*1000));
+var grass_mask = DC_2016_image.eq(71)
+     .clipToCollection(ee.FeatureCollection(x));
 
-var grass_sum2016 = grass_area2016.reduceRegion({
+var area = grass_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
 
-  print('grassland area 2016', grass_sum2016, 'km2');
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
 
-  var percent_grass2016 = 14.22/(area)*100;
-  print('percent grassland 2016', percent_grass2016);
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
+
+return x.set('raw grassland area 2016', number);
+});
 
 //scrub (51, 52)
-var scrub_mask2016 = DC_2016_image.eq(51).add(DC_2016_image.eq(52))
-     .clipToCollection(DC_watershed);
+var scrub16_function = grassland16_function.map( function(x) {
 
-var scrub_area2016 = scrub_mask2016.multiply(ee.Image.pixelArea().divide(1000*1000));
+var scrub_mask = DC_2016_image.eq(51).add(DC_2016_image.eq(52))
+     .clipToCollection(ee.FeatureCollection(x));
 
-var scrub_sum2016 = scrub_area2016.reduceRegion({
+var area = scrub_mask.multiply(ee.Image.pixelArea().divide(1000*1000));
+
+var sum = area.reduceRegion({
        reducer: ee.Reducer.sum(),
-       geometry: DC_watershed,
+       geometry: ee.FeatureCollection(x),
        scale: 30,
        maxPixels: 1e13
      });
 
-  print('scrub area 2016', scrub_sum2016, 'km2');
+var cast_image = sum.toImage().toFloat().clipToCollection(ee.FeatureCollection(x));
 
-  var percent_scrub2016 = 19.61/(area)*100;
-  print('percent scrub 2016', percent_scrub2016);
+var number = ee.Number(cast_image.select('landcover_median')
+ .reduceRegion(ee.Reducer.first(), ee.FeatureCollection(x), 30)
+  .get('landcover_median'));
 
+return x.set('raw scrub area 2016', number);
+});
 
-/////////PART 3. LULC IN SITE CATCHMENTS  ////////////
-Map.addLayer(catchments, {color: '9c2828', 'fillColor': 'ffffff00'}, 'catchments');
-
-var sites = Map.addLayer(DC_sites, {color:'ABCD6C', 'fillColor': 'ABCD6C'}, 'sites');
-
-//Create a new variable for each separate watershed
-
-function getCols(Catchments){
-  print(Catchments.columns);
-}
-catchments.limit(0).evaluate(getCols);
-
-var shed1 = catchments.filter(ee.Filter.eq('gridcode', 1));
-var shed2 = catchments.filter(ee.Filter.eq('gridcode', 2));
-var shed3 = catchments.filter(ee.Filter.eq('gridcode', 3));
-var shed17 = catchments.filter(ee.Filter.eq('gridcode', 17));
-var shed11 = catchments.filter(ee.Filter.eq('gridcode', 11));
-var shed12 = catchments.filter(ee.Filter.eq('gridcode', 12));
-var shed13 = catchments.filter(ee.Filter.eq('gridcode', 13));
-var shed4 = catchments.filter(ee.Filter.eq('gridcode', 4));
-var shed5 = catchments.filter(ee.Filter.eq('gridcode', 5));
-var shed6 = catchments.filter(ee.Filter.eq('gridcode', 6));
-var shed15 = catchments.filter(ee.Filter.eq('gridcode', 15));
-var shed18 = catchments.filter(ee.Filter.eq('gridcode', 18));
-var shed7 = catchments.filter(ee.Filter.eq('gridcode', 7));
-var shed8 = catchments.filter(ee.Filter.eq('gridcode', 8));
-var shed16 = catchments.filter(ee.Filter.eq('gridcode', 16));
-var shed9 = catchments.filter(ee.Filter.eq('gridcode', 9));
-var shed10 = catchments.filter(ee.Filter.eq('gridcode', 10));
-var shed14 = catchments.filter(ee.Filter.eq('gridcode', 14));
-
-//Get cumulative watersheds for each site
-
-var totalsheds2 = shed1.merge(shed2);
-var totalsheds12 = shed12.merge(shed13);
-var totalsheds11 = totalsheds12.merge(shed11);
-var totalsheds17 = totalsheds11.merge(totalsheds2).merge(shed17);
-
-var totalsheds3 = totalsheds17.merge(shed3);
-var totalsheds4 = totalsheds3.merge(shed4);
-var totalsheds5 = totalsheds4.merge(shed5);
-var totalsheds6 = totalsheds5.merge(shed6);
-var totalsheds18 = totalsheds6.merge(shed18);
-var totalsheds7 = totalsheds18.merge(shed7);
-var totalsheds8 = totalsheds7.merge(shed8);
-var totalsheds16 = shed16.merge(shed15);
-var totalsheds9 = totalsheds16.merge(totalsheds8);
-var totalsheds10 = totalsheds9.merge(shed10);
-var DCsheds = totalsheds10.merge(shed14);
-
-//next step: analyze LULC within each catchment. Reduce region.
+////////////Export final feature collection to drive/////////////////
+Export.table.toDrive({
+ collection: scrub16_function,
+ description: 'catchment results'
+});
