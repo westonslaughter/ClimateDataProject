@@ -10,5 +10,6 @@ QA/QC Water Quality Data (remove outliers, etc.) | WS
 Iterate function calculating land cover % by area within catchment over all sites | DP + WS
 Reach out to SYRCL + WCCA Regarding getting datasets | WS
 Later: review and explore future LULC variables | DP + WS
+Repeat NDVI extraction at catchment | ?
 
 Delete when complete!
