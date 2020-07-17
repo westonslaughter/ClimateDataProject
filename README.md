@@ -11,5 +11,6 @@ Iterate function calculating land cover % by area within catchment over all site
 Reach out to SYRCL + WCCA Regarding getting datasets | WS
 Later: review and explore future LULC variables | DP + WS
 Repeat NDVI extraction at catchment | ?
+Normalized burn difference | ?
 
 Delete when complete!
