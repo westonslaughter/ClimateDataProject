@@ -7,7 +7,6 @@ Tasks | Responsible
 ------- | --------
 Getting .shp and other files from local to cloud storage, and updating code accordingly | Primary Author of any script responsible for update
 QA/QC Water Quality Data (remove outliers, etc.) | WS
-Iterate function calculating land cover % by area within catchment over all sites | DP + WS
 Repeat NDVI extraction at catchment | DP
 Normalized burn difference | DP
 Get NLCD forest type | DP
