@@ -9,6 +9,5 @@ Getting .shp and other files from local to cloud storage, and updating code acco
 QA/QC Water Quality Data (remove outliers, etc.) | WS
 Repeat NDVI extraction at catchment | DP
 Normalized burn difference | DP
-Get NLCD forest type | DP
 
 Delete when complete!
