@@ -1,13 +1,18 @@
-# ClimateDataProject
+# Climate Data Project
 SSI Climate, Land Cover, and Water Quality Research
 
 This repository contains code used for data extraction and analysis in the development of a model for water quality and benthic macroinvertebrate assemblages in Northern California's Deer Creek watershed, using 20 years of citizen science data collected by Sierra Streams Institute, and climate and land cover variables gathered from multiple sources.
 
-Tasks | Responsible
+Tasks | Responsible | Due Date (Always a Friday)
 ------- | --------
-Getting .shp and other files from local to cloud storage, and updating code accordingly | Primary Author of any script responsible for update
-QA/QC Water Quality Data (remove outliers, etc.) | WS
-Repeat NDVI extraction at catchment | DP
-Normalized burn difference | DP
+QA/QC Water Quality Data (remove outliers, etc.) | WS | **7/31**
+Repeat NDVI extraction at catchment | DP | **8/7**
+Normalized burn difference | DP | **8/7**
+Inquire w/ Chloe about Algae data, enter or forget | WS | **7/31**
+Meet with Jeff when data aggregated | All | **8/7**
+Run data back through the PCA script | WS | **8/14**
+Look over scripts for readability and style | ALL | **8/14, Rolling**
+Write rough draft of paper based on model results | WS + DP | **8/21, Rolling**
+Draft up presentation for SNA | DP + WS | **8/21, Rolling**
 
 Delete when complete!
