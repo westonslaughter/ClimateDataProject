@@ -4,7 +4,7 @@ SSI Climate, Land Cover, and Water Quality Research
 This repository contains code used for data extraction and analysis in the development of a model for water quality and benthic macroinvertebrate assemblages in Northern California's Deer Creek watershed, using 20 years of citizen science data collected by Sierra Streams Institute, and climate and land cover variables gathered from multiple sources.
 
 Tasks | Responsible | Due Date (Always a Friday)
-------- | --------
+------- | -------- | --------
 QA/QC Water Quality Data (remove outliers, etc.) | WS | **7/31**
 Repeat NDVI extraction at catchment | DP | **8/7**
 Normalized burn difference | DP | **8/7**
