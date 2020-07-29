@@ -7,6 +7,7 @@ Tasks | Responsible | Due Date (Always a Friday)
 ------- | -------- | --------
 QA/QC Water Quality Data (remove outliers, etc.) | WS | **7/31**
 Repeat NDVI extraction at catchment | DP | **8/7**
+Upload SEM scripts to GitHub | JL | **8/7**
 Normalized burn difference | DP | **8/7**
 Inquire w/ Chloe about Algae data, enter or forget | WS | **7/31**
 Meet with Jeff when data aggregated | All | **8/7**
