@@ -13,7 +13,7 @@ Map.centerObject(roi, 11);
 
 
 // Retrieve LANDSAT imagery, (Tier 1, LANDSAT 7)
-// We need just Landsat for our regioin of interest (roi)
+// We need just Landsat for our region of interest (roi)
 // LandSat 7 Import
 
 
@@ -68,12 +68,14 @@ var water_buffer = ee.FeatureCollection(water).map(bufferBy(30));
 //Map.addLayer(water_buffer, {color: 'Fa6fe0'}, 'water buffer');
 
 
-//compute the difference - spatial overlay
+//to get riparian zone, compute the difference - spatial overlay
 var wb_geo = water_buffer.geometry();
 var water_geo = water.geometry();
 
-var riparianZone = ee.Geometry(wb_geo).difference(ee.Geometry(water_geo)).dissolve(); //dissolve gets rid of overlaps
+var riparianZone = ee.Geometry(wb_geo).difference(ee.Geometry(water_geo)).dissolve(); //dissolve gets rid of holes
 Map.addLayer(riparianZone, {color: '002b80'}, 'riparian zone');
+//I don't think this takes out the stream because its a line. Does this matter?
+
 
 // Now, we need to get the mean NDVI during the growing
 // season for each year.
@@ -81,7 +83,6 @@ Map.addLayer(riparianZone, {color: '002b80'}, 'riparian zone');
 // First, we will isolate the growing season in our IC
 var icGrowing = collection1
     .filter(ee.Filter.calendarRange(4,10,'month'));
-    //FILTER TO RIPARIAN ZONE--NOT WORKING FOR ME --CAN I CLIP LATER ON?
 //print('icGrowing', icGrowing);
 Map.addLayer(icGrowing, {}, 'icGrowing');
 
@@ -144,7 +145,7 @@ print('check', check);
 //need to make a color pallet for this layer
 
 ////////////////////now map mean to catchment layer: start with just 1 year////////////////
-var ndvi_2001 = YearlyNDVI.first().select('NDVI_mean');
+var ndvi_2001 = YearlyNDVI.first().select('NDVI_mean').clip(riparianZone);
 print('ndvi_2001', ndvi_2001);
 
 var catMap_mean = catchments.map(function(x){
@@ -170,8 +171,8 @@ var stack = function(collection){
   return ee.Image(collection.iterate(appendBands, first));
 };
 
-var yNDVI_stack = stack(YearlyNDVI);
-Map.addLayer(yNDVI_stack);
+var yNDVI_stack = stack(YearlyNDVI).clip(riparianZone);
+//Map.addLayer(yNDVI_stack);
 print('yNDVIm_stack', yNDVI_stack);
 
 //success!!
@@ -198,7 +199,7 @@ Map.addLayer(catMap, {color: 'a14fde'}, 'catMap');
 
 //Export to a table
 
-//Export.table.toDrive({
-//collection: YearlyNDVI,
-//description: 'YearlyNDVI_test'
-//});
+Export.table.toDrive({
+collection: catMap,
+description: 'draft_ndvi_results'
+});
