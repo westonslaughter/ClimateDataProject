@@ -5,7 +5,7 @@ This repository contains code used for data extraction and analysis in the devel
 
 Tasks | Responsible | Due Date (Always a Friday)
 ------- | -------- | --------
-QA/QC Water Quality Data (remove outliers, etc.) | WS | **7/31**
+Boxplots of Water Quality outliers, lit review | WS | **7/31**
 Upload SEM scripts to GitHub + first stab at predictions | JL | **8/7**
 Run data back through the PCA script | WS | **8/14**
 Look over scripts for readability and style | ALL | **8/14, Rolling**
