@@ -6,7 +6,6 @@ This repository contains code used for data extraction and analysis in the devel
 Tasks | Responsible | Due Date (Always a Friday)
 ------- | -------- | --------
 QA/QC Water Quality Data (remove outliers, etc.) | WS | **7/31**
-Create multiple riparian buffers? (i.e. 30, 60, 90...) |  | **8/7**
 Upload SEM scripts to GitHub + first stab at predictions | JL | **8/7**
 Inquire w/ Chloe about Algae data, enter or forget | WS | **7/31**
 Meet with Jeff when data aggregated | All | **8/7**
