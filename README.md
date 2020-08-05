@@ -8,7 +8,6 @@ Tasks | Responsible | Due Date (Always a Friday)
 QA/QC Water Quality Data (remove outliers, etc.) | WS | **7/31**
 Upload SEM scripts to GitHub + first stab at predictions | JL | **8/7**
 Inquire w/ Chloe about Algae data, enter or forget | WS | **7/31**
-Meet with Jeff when data aggregated | All | **8/7**
 Run data back through the PCA script | WS | **8/14**
 Look over scripts for readability and style | ALL | **8/14, Rolling**
 Write rough draft of paper based on model results | WS + DP | **8/21, Rolling**
