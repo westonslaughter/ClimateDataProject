@@ -1,40 +1,40 @@
-// NDVI Extraction Script Update
+// NDVI Extraction Script
 // Authors: DP, WS
 // Sierra Streams Institute
 // New Script 7/20/2020
+//last edited 8/12/20
 
-// Load in SSI's Deer Creek monitoring
-// site catchments, sites, and watershed outline
+////////Part 1. Data prep//////////
+//Step 1. Load the data: import catchments, DC_watershed, NHD (NHD flowline, aka streams), and NHD waterbodies
 var roi = DC_watershed
 Map.centerObject(roi, 11);
 
-// Add DC Site Catchments to the map
+//'catchments' is a Feature Collection layer created in ArcGIS containing the upstream catchment
+//from each site to the next upstream site. The column 'gridcode' indicates which
+//site the catchment corresponds to.
+
+//If you want to visualize catchments:
 //Map.addLayer(catchments, {color: '000000'}, 'catchments');
 
-
 // Retrieve LANDSAT imagery, (Tier 1, LANDSAT 7)
-// We need just Landsat for our region of interest (roi)
-// LandSat 7 Import
 
+// Step 2. NDVI and Landsat7 processing
 
-// NDVI Functions
-
-// Build a map f(x), to add NDVI to every image in my collection
-// NDVI, "standard" band calc
+// 2a. Build a function to add NDVI to every image in the Landsat collection
 
 var addNDVI = function(image) {
   var ndvi = image.normalizedDifference(['B4', 'B3']).rename('NDVI');
   return image.addBands(ndvi);
 };
 
-// Cloud masking function
+// 2b. Remove clouds with Fmask:
 var addFmask = function(image) {
   var datamask = image.select('BQA');
   var cloudMask = datamask.neq(1).and(datamask.neq(2)).and(datamask.neq(3)).and(datamask.neq(4));
   return image.updateMask(cloudMask);
 };
 
-// Make collection of LANDSAT with our parameters
+//2c. Landsat7 data prep:
 
 var collection1 = landsat7Collection
     // Filter to DC watershed
@@ -42,71 +42,60 @@ var collection1 = landsat7Collection
     // Filter to 2001-2020 period
     .filterDate('2001-01-01', '2020-02-29')
     // Select only relevant bands
-        // B3: Red, B4: Infrared, BQA: Image Quality Metric
+        // B3: Red, B4: NIR, BQA: Image Quality Metric
     .select(['B3', 'B4', 'BQA'])
-    // Apply quality function
+    // Apply cloud masking function
     .map(addFmask)
     // Calculate and add NDVI column
     .map(addNDVI).select('NDVI');
- ///////////////////////////////////buffer NDVI to riparian zone///////////////////////
-//import NHD flowline data, clipped to DC watershed
-//import NHD waterbodies (scotts flat and LWW)
 
-//merge waterbodies and flowline to 1 water layer
+
+  //Step 3. water layer prep
+
+//merge NHDwaterbodies and NHD (flowline) to one water layer
 var water = NHD.merge(NHD_waterbodies);
+
+//optional visualization:
 //Map.addLayer(water, {color: 'e6ffe6'}, 'water');
 
-//create buffer function for water
+ ///////////Part 2. Get riparian zone///////////////////////
+
+//Step 1. create buffer function for water
 var bufferBy = function (size){
   return function(feature){
     return feature.buffer(size);
   };
 };
 
-//apply 30m buffer to water layer
+//Step 2. apply 30m buffer to water layer
 var water_buffer = ee.FeatureCollection(water).map(bufferBy(30));
+
 //Map.addLayer(water_buffer, {color: 'Fa6fe0'}, 'water buffer');
 
+//Step 3. Get riparian zone
 
-//to get riparian zone, compute the difference - spatial overlay
+//3a. Convert buffer layer to correct data type (geometry)
 var wb_geo = water_buffer.geometry();
 var water_geo = water.geometry();
 
+//3b. Use 'difference' spatial overlay (similar to ArcGIS) to remove actual water, leaving only the buffer
 var riparianZone = ee.Geometry(wb_geo).difference(ee.Geometry(water_geo)).dissolve(); //dissolve gets rid of holes
 Map.addLayer(riparianZone, {color: '002b80'}, 'riparian zone');
-//I don't think this takes out the stream because its a line. Does this matter?
 
+//**Since the stream is a line, it doesn't get removed. Is this a problem?
 
-// Now, we need to get the mean NDVI during the growing
-// season for each year.
+/////// Part 3. Meat and potatoes: Get the min, max and mean NDVI during the growing season for each year,
+///////in each catchment, only within the riparian zone///////
 
-// First, we will isolate the growing season in our IC
+// Step 1. isolate the growing season in our Image Collection (IC)//
 var icGrowing = collection1
     .filter(ee.Filter.calendarRange(4,10,'month'));
 //print('icGrowing', icGrowing);
 Map.addLayer(icGrowing, {}, 'icGrowing');
 
-//////////////get max of the mean in each catchment: 2001 test/////////////////////
-//var CatMap = catchments.map( function(y){
+//Step 2. Get yearly min, max, mean NDVI for each year
 
-  //var ic2001 = icGrowing.filterDate('2001-01-01', '2001-12-31').select('NDVI');
-  //var image2001 = ic2001.reduceToImage(['NDVI'], ee.Reducer.mean());
-
-    //var meanCat = image2001.reduceRegion({
-   //reducer: ee.Reducer.mean(),
-   //geometry: ee.FeatureCollection(y),
-     //scale: 30,
-     //maxPixels: 1e13
- //});
-
-//return y.set('mean NDVI 2001', meanCat);
-//});
-
-//print('function test', CatMap);
-//Map.addLayer(CatMap, {color: '0aFFa0'}, 'function test');
-
-/////////////////////////////////iteration///////////////////////////
-//(copied from stack exchange)
+//(code copied from stack exchange)
 /* Creates a collection of mosaics with a given temporal interval.
  *
  * collection - the collection from which to make composites.
@@ -139,30 +128,17 @@ var temporalCollection = function(collection, start, count, interval, units) {
 
 var YearlyNDVI = temporalCollection(collection1, ee.Date('2001-01-01'), 21, 1, 'year');
 
+//test one year to see if this worked:
 var check = ee.Image(YearlyNDVI.first()).clipToCollection(roi);
 print('check', check);
+//optional viz:
 //Map.addLayer(check, {bands: 'NDVI_mean', min: -1, max: 1}, 'check');
-//need to make a color pallet for this layer
 
-////////////////////now map mean to catchment layer: start with just 1 year////////////////
-var ndvi_2001 = YearlyNDVI.first().select('NDVI_mean').clip(riparianZone);
-print('ndvi_2001', ndvi_2001);
+//Step 3. Summarize YearlyNDVI in catchments
 
-var catMap_mean = catchments.map(function(x){
-  var ndvi_reduce = ee.Image(ndvi_2001).reduceRegion({
-    reducer: ee.Reducer.mean(),
-    geometry: ee.FeatureCollection(x),
-    scale: 30,
-    maxPixels: 1e13
-  });
+//3a. Stack YearlyNDVI so that all IC images become separate bands in same image--this will allow reducing in next step
+  //also clip to riparian zone
 
-  return x.set(ndvi_reduce);
-});
-
-print('catMap_mean', catMap_mean);
-
-////////////////////////////////////now iterate this into catchments/////////////////////////////
-//stack YearlyNDVI so that all separate images become separate bands in same image
 var stack = function(collection){
   var first = ee.Image(collection.first());
   var appendBands = function(image, previous){
@@ -175,8 +151,7 @@ var yNDVI_stack = stack(YearlyNDVI).clip(riparianZone);
 //Map.addLayer(yNDVI_stack);
 print('yNDVIm_stack', yNDVI_stack);
 
-//success!!
-//now reduce these bands into each catchment
+//3b. Reduce yNDVI_stack into catchments
 var catMap = catchments.map(function(x){
   var ndvi_reduce = ee.Image(yNDVI_stack).reduceRegion({
     reducer: ee.Reducer.mean(),
@@ -191,15 +166,11 @@ var catMap = catchments.map(function(x){
 print('ndvis in catchment', catMap);
 Map.addLayer(catMap, {color: 'a14fde'}, 'catMap');
 
+//Step 4. Export results to a table
 
-///need to make sure this actually does correspond to the right dates--go back to the
-//temporal collection bit
+//Export.table.toDrive({
+//collection: catMap,
+//description: 'draft_ndvi_results'
+//});
 
-
-
-//Export to a table
-
-Export.table.toDrive({
-collection: catMap,
-description: 'draft_ndvi_results'
-});
+//All done!//
